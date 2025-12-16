@@ -9,13 +9,13 @@ package trenes;
  *
  * @author juanc
  */
-public class Tren {
+public class Tren implements Comparable<Tren> {
 
     private final int codigo;
     private String propulsion;
     private int vagPasajeros;
     private int vagCarga;
-    private String linea; // "no-asignado" si libre
+    private String linea;
 
     public Tren(int codigo, String propulsion, int vagPasajeros, int vagCarga, String linea) {
         this.codigo = codigo;
@@ -56,6 +56,32 @@ public class Tren {
     public void setCantidadVagonesCarga(int cantVagonesCarga) {
         this.vagCarga = cantVagonesCarga;
 
+    }
+
+    public Tren(int codigo) {
+        this(codigo, "", 0, 0, "");
+    }
+
+    @Override
+    public int compareTo(Tren o) {
+        return Integer.compare(this.codigo, o.codigo);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof Tren)) {
+            return false;
+        }
+        Tren other = (Tren) obj;
+        return this.codigo == other.codigo;
+    }
+
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(codigo);
     }
 
 }
