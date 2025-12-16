@@ -11,8 +11,8 @@ public class TrenesSA {
     // ===== Estructuras =====
     private final AVL trenes = new AVL(); // TERMINADO Y REVISADO
     private final AVL estaciones = new AVL(); // TERMINADO Y REVISADO
-    private final HashMap<String, String> lineas = new HashMap<>();// PENDIENTE REVISAR
-    private final Map<String, Riel> rieles = new TreeMap<>();  //grafo etiquetado PENDIENTE
+    private final HashMap<String, Lista> lineas = new HashMap<>(); // TERMINADO Y REVISADO
+    private final Grafo<Estacion, Riel> red = new Grafo<>(); // TERMINADO Y REVISADO
 
     // ===== Programa =====
     public void comenzar() {
@@ -98,9 +98,7 @@ public class TrenesSA {
     // ===== Adaptador AVL (AJUSTÁ ESTOS MÉTODOS A TU AVL) ======
     // =========================================================
     private boolean trenInsertar(int codigo, Tren tren) {
-        // EJEMPLOS posibles:
-        // return trenes.insertar(codigo, tren);
-        // return trenes.put(codigo, tren);  // si tu AVL simula Map
+
         return trenes.insertar((Comparable) codigo, tren);
     }
 
@@ -120,18 +118,6 @@ public class TrenesSA {
         return trenes.eliminar(codigo);
     }
 
-    /*
-    private int trenSize() {
-        // return trenes.size();
-        return trenes.size();
-    }
-
-
-    private void trenInOrder(Consumer<Tren> visit) {
-        // trenes.inOrder(visit);
-        trenes.inOrder(visit);
-    }
-     */
     // ====== Opción 1 ======
     private void cargarInicial(Scanner sc) {
         System.out.println("[TODO] Carga inicial (StringTokenizer)...");
@@ -413,31 +399,23 @@ public class TrenesSA {
     private void abmLineas(Scanner sc) {
         boolean volver = false;
         while (!volver) {
-            imprimirMenuRieles();
+            imprimirMenuLineas();
+            String op = sc.nextLine().trim();
 
-            String linea = sc.nextLine().trim();
-            int opc;
-            try {
-                opc = Integer.parseInt(linea);
-            } catch (NumberFormatException e) {
-                System.out.println("Opción inválida.");
-                continue;
-            }
-
-            switch (opc) {
-                case 1:
+            switch (op) {
+                case "1":
                     altaLinea(sc);
                     break;
-                case 2:
+                case "2":
                     bajaLinea(sc);
                     break;
-                case 3:
+                case "3":
                     modificarLinea(sc);
                     break;
-                case 4:
+                case "4":
                     listarLineas();
                     break;
-                case 0:
+                case "0":
                     volver = true;
                     break;
                 default:
@@ -446,145 +424,102 @@ public class TrenesSA {
         }
     }
 
-    private void imprimirMenuRieles() {
-        System.out.println("=== ABM RIELES ===");
-        System.out.println("1. Alta de riel");
-        System.out.println("2. Baja de riel");
-        System.out.println("3. Modificación de riel");
-        System.out.println("4. Listar rieles");
-        System.out.println("0. Volver");
+    private void imprimirMenuLineas() {
+        System.out.println("=== ABM LÍNEAS ===");
+        System.out.println("1) Alta de línea");
+        System.out.println("2) Baja de línea");
+        System.out.println("3) Modificación de línea");
+        System.out.println("4) Listar líneas");
+        System.out.println("0) Volver");
         System.out.print("Opción: ");
     }
 
     private void altaLinea(Scanner sc) {
-        try {
-            System.out.print("Código estación origen: ");
-            int codOri = Integer.parseInt(sc.nextLine().trim());
-
-            System.out.print("Código estación destino: ");
-            int codDes = Integer.parseInt(sc.nextLine().trim());
-
-            if (codOri == codDes) {
-                System.out.println("No se puede crear un riel de una estación consigo misma.");
-                return;
-            }
-            Object[] response = estaciones.buscar(codOri);
-            if (response[0] instanceof Boolean) {
-                if (!(Boolean) response[0]) {
-                    System.out.println("No existe estación con código " + codOri);
-                    return;
-                }
-            }
-
-            if (response[0] instanceof Boolean) {
-                if (!(Boolean) response[0]) {
-                    System.out.println("No existe estación con código " + codDes);
-                    return;
-                }
-            }
-
-            String clave = claveRiel(codOri, codDes);
-            if (rieles.containsKey(clave)) {
-                System.out.println("Ya existe un riel entre esas dos estaciones.");
-                return;
-            }
-
-            System.out.print("Distancia (km): ");
-            int distancia = Integer.parseInt(sc.nextLine().trim());
-
-            Riel r = new Riel(codOri, codDes, distancia);
-            rieles.put(clave, r);
-
-            System.out.println("Riel agregado: " + r);
-        } catch (NumberFormatException e) {
-            System.out.println("Valor numérico inválido.");
+        String nombreLinea = leerNoVacio(sc, "Nombre de la línea: ");
+        if (lineas.containsKey(nombreLinea)) {
+            System.out.println("✗ Ya existe la línea " + nombreLinea);
+            return;
         }
+
+        int n = leerInt(sc, "Cantidad de estaciones en el recorrido: ", 2);
+        Lista recorrido = new Lista();
+
+        for (int i = 1; i <= n; i++) {
+            int codEst = leerInt(sc, "Código estación #" + i + ": ", 1);
+            Object[] res = estaciones.buscar(codEst);
+            if (!(Boolean) res[0]) {
+                System.out.println("✗ No existe estación con código " + codEst);
+                return;
+            }
+            recorrido.insertar(res[1], recorrido.longitud() + 1); // guarda Estacion
+        }
+
+        lineas.put(nombreLinea, recorrido);
+        System.out.println("✓ Línea creada: " + nombreLinea);
     }
 
     private void bajaLinea(Scanner sc) {
-        try {
-            System.out.print("Código linea origen: ");
-            int codOri = Integer.parseInt(sc.nextLine().trim());
-
-            System.out.print("Código estación destino: ");
-            int codDes = Integer.parseInt(sc.nextLine().trim());
-
-            String clave = claveRiel(codOri, codDes);
-            Riel eliminado = rieles.remove(clave);
-
-            if (eliminado == null) {
-                System.out.println("No existe riel entre esas dos estaciones.");
-            } else {
-                System.out.println("Riel eliminado: " + eliminado);
-            }
-
-        } catch (NumberFormatException e) {
-            System.out.println("Valor numérico inválido.");
+        String nombreLinea = leerNoVacio(sc, "Nombre de la línea a eliminar: ");
+        Lista elim = lineas.remove(nombreLinea);
+        if (elim == null) {
+            System.out.println("✗ No existe la línea " + nombreLinea);
+        } else {
+            System.out.println("✓ Línea eliminada: " + nombreLinea);
         }
     }
 
     private void modificarLinea(Scanner sc) {
-        try {
-
-            System.out.println("Linea actual: " + r);
-            System.out.print("Nueva distancia (km): ");
-            int nuevaDist = Integer.parseInt(sc.nextLine().trim());
-
-            r.setDistanciaKm(nuevaDist);
-            System.out.println("Linea modificado: " + r);
-
-        } catch (NumberFormatException e) {
-            System.out.println("Valor numérico inválido.");
+        String nombreLinea = leerNoVacio(sc, "Nombre de la línea a modificar: ");
+        if (!lineas.containsKey(nombreLinea)) {
+            System.out.println("✗ No existe la línea " + nombreLinea);
+            return;
         }
+        // opción simple: re-cargar recorrido completo
+        lineas.remove(nombreLinea);
+        System.out.println("(Se re-carga el recorrido completo)");
+        altaLinea(sc);
     }
 
     private void listarLineas() {
-        if (rieles.isEmpty()) {
-            System.out.println("No hay lineas cargados.");
+        if (lineas.isEmpty()) {
+            System.out.println("No hay líneas cargadas.");
             return;
         }
-        System.out.println("=== LISTA DE LINEAS ===");
-        for (Riel r : rieles.values()) {
-            System.out.println(r);
+        System.out.println("=== LÍNEAS ===");
+        for (Map.Entry<String, Lista> e : lineas.entrySet()) {
+            System.out.println("- " + e.getKey() + " : " + e.getValue());
         }
     }
 
-    /*
-    private void abmLineas(Scanner in) {
-        System.out.println("[TODO] ABM Líneas (tenés el Map lineas listo; falta implementar alta/baja/modif/listar/buscar).");
-    }
-     */
     // =======================
     // ====== ABM RIELES =====
     // =======================
+    // =======================
+// ====== ABM RIELES =====
+// =======================
     private void abmRieles(Scanner sc) {
         boolean volver = false;
         while (!volver) {
             imprimirMenuRieles();
+            String op = sc.nextLine().trim();
 
-            String linea = sc.nextLine().trim();
-            int opc;
-            try {
-                opc = Integer.parseInt(linea);
-            } catch (NumberFormatException e) {
-                System.out.println("Opción inválida.");
-                continue;
-            }
-
-            switch (opc) {
-                case 1:
+            switch (op) {
+                case "1":
                     altaRiel(sc);
                     break;
-                case 2:
+                case "2":
                     bajaRiel(sc);
                     break;
-                case 3:
+                case "3":
                     modificarRiel(sc);
                     break;
-                case 4:
+                case "4":
                     listarRieles();
                     break;
-                case 0:
+                case "5":
+                    listarRielesDeEstacion(sc);
+                    break;
+                case "0":
                     volver = true;
                     break;
                 default:
@@ -594,123 +529,173 @@ public class TrenesSA {
     }
 
     private void imprimirMenuRieles() {
-        System.out.println("=== ABM RIELES ===");
-        System.out.println("1. Alta de riel");
-        System.out.println("2. Baja de riel");
-        System.out.println("3. Modificación de riel");
-        System.out.println("4. Listar rieles");
-        System.out.println("0. Volver");
+        System.out.println("=== ABM RIELES (RED) ===");
+        System.out.println("1) Alta de riel");
+        System.out.println("2) Baja de riel");
+        System.out.println("3) Modificación de riel");
+        System.out.println("4) Listar rieles");
+        System.out.println("5) Listar rieles de estacion");
+        System.out.println("0) Volver");
         System.out.print("Opción: ");
     }
 
-    private void altaRiel(Scanner sc) {
-        try {
-            System.out.print("Código estación origen: ");
-            int codOri = Integer.parseInt(sc.nextLine().trim());
-
-            System.out.print("Código estación destino: ");
-            int codDes = Integer.parseInt(sc.nextLine().trim());
-
-            if (codOri == codDes) {
-                System.out.println("No se puede crear un riel de una estación consigo misma.");
-                return;
-            }
-            Object[] response = estaciones.buscar(codOri);
-            if (response[0] instanceof Boolean) {
-                if (!(Boolean) response[0]) {
-                    System.out.println("No existe estación con código " + codOri);
-                    return;
-                }
-            }
-
-            if (response[0] instanceof Boolean) {
-                if (!(Boolean) response[0]) {
-                    System.out.println("No existe estación con código " + codDes);
-                    return;
-                }
-            }
-
-            String clave = claveRiel(codOri, codDes);
-            if (rieles.containsKey(clave)) {
-                System.out.println("Ya existe un riel entre esas dos estaciones.");
-                return;
-            }
-
-            System.out.print("Distancia (km): ");
-            int distancia = Integer.parseInt(sc.nextLine().trim());
-
-            Riel r = new Riel(codOri, codDes, distancia);
-            rieles.put(clave, r);
-
-            System.out.println("Riel agregado: " + r);
-        } catch (NumberFormatException e) {
-            System.out.println("Valor numérico inválido.");
+    private Estacion buscarEstacionPorCodigo(int codigo) {
+        Object[] res = estaciones.buscar(codigo);
+        if (!(Boolean) res[0]) {
+            return null;
         }
+        return (Estacion) res[1];
+    }
+
+    private void altaRiel(Scanner sc) {
+        int codOri = leerInt(sc, "Código estación origen: ", 1);
+        int codDes = leerInt(sc, "Código estación destino: ", 1);
+
+        if (codOri == codDes) {
+            System.out.println("No se puede crear un riel de una estación consigo misma.");
+            return;
+        }
+
+        Estacion ori = buscarEstacionPorCodigo(codOri);
+        Estacion des = buscarEstacionPorCodigo(codDes);
+
+        if (ori == null) {
+            System.out.println("No existe estación con código " + codOri);
+            return;
+        }
+        if (des == null) {
+            System.out.println("No existe estación con código " + codDes);
+            return;
+        }
+
+        red.insertarVertice(ori);
+        red.insertarVertice(des);
+
+        // Verifico riel DIRECTO (arco). En tu Grafo el “exists” es verificarArco(...)
+        if (red.existeArco(ori, des) || red.existeArco(des, ori)) {
+            System.out.println("Ya existe un riel entre esas dos estaciones.");
+            return;
+        }
+
+        int distancia = leerInt(sc, "Distancia (km): ", 1);
+
+        Riel r = new Riel(codOri, codDes, distancia);
+
+        // true => no dirigido (carga ida y vuelta)
+        red.insertarArco(ori, des, true, r);
+
+        System.out.println("✓ Riel agregado: " + r);
     }
 
     private void bajaRiel(Scanner sc) {
-        try {
-            System.out.print("Código estación origen: ");
-            int codOri = Integer.parseInt(sc.nextLine().trim());
+        int codOri = leerInt(sc, "Código estación origen: ", 1);
+        int codDes = leerInt(sc, "Código estación destino: ", 1);
 
-            System.out.print("Código estación destino: ");
-            int codDes = Integer.parseInt(sc.nextLine().trim());
+        Estacion ori = buscarEstacionPorCodigo(codOri);
+        Estacion des = buscarEstacionPorCodigo(codDes);
 
-            String clave = claveRiel(codOri, codDes);
-            Riel eliminado = rieles.remove(clave);
-
-            if (eliminado == null) {
-                System.out.println("No existe riel entre esas dos estaciones.");
-            } else {
-                System.out.println("Riel eliminado: " + eliminado);
-            }
-
-        } catch (NumberFormatException e) {
-            System.out.println("Valor numérico inválido.");
+        if (ori == null) {
+            System.out.println("No existe estación con código " + codOri);
+            return;
         }
+        if (des == null) {
+            System.out.println("No existe estación con código " + codDes);
+            return;
+        }
+
+        // Recupero el riel antes de borrar (etiqueta del arco)
+        Riel eliminado = (Riel) red.obtenerEtiquetaArco(ori, des);
+        if (eliminado == null) {
+            eliminado = (Riel) red.obtenerEtiquetaArco(des, ori);
+        }
+
+        if (eliminado == null) {
+            System.out.println("No existe riel entre esas dos estaciones.");
+            return;
+        }
+
+        // Borro ambos sentidos (porque lo cargaste como no dirigido)
+        red.eliminarArco(ori, des);
+        red.eliminarArco(des, ori);
+
+        System.out.println("✓ Riel eliminado: " + eliminado);
     }
 
     private void modificarRiel(Scanner sc) {
-        try {
-            System.out.print("Código estación origen: ");
-            int codOri = Integer.parseInt(sc.nextLine().trim());
+        int codOri = leerInt(sc, "Código estación origen: ", 1);
+        int codDes = leerInt(sc, "Código estación destino: ", 1);
 
-            System.out.print("Código estación destino: ");
-            int codDes = Integer.parseInt(sc.nextLine().trim());
+        Estacion ori = buscarEstacionPorCodigo(codOri);
+        Estacion des = buscarEstacionPorCodigo(codDes);
 
-            String clave = claveRiel(codOri, codDes);
-            Riel r = rieles.get(clave);
-
-            if (r == null) {
-                System.out.println("No existe riel entre esas dos estaciones.");
-                return;
-            }
-
-            System.out.println("Riel actual: " + r);
-            System.out.print("Nueva distancia (km): ");
-            int nuevaDist = Integer.parseInt(sc.nextLine().trim());
-
-            r.setDistanciaKm(nuevaDist);
-            System.out.println("Riel modificado: " + r);
-
-        } catch (NumberFormatException e) {
-            System.out.println("Valor numérico inválido.");
+        if (ori == null) {
+            System.out.println("No existe estación con código " + codOri);
+            return;
         }
+        if (des == null) {
+            System.out.println("No existe estación con código " + codDes);
+            return;
+        }
+
+        Riel r = (Riel) red.obtenerEtiquetaArco(ori, des);
+        if (r == null) {
+            r = (Riel) red.obtenerEtiquetaArco(des, ori);
+        }
+
+        if (r == null) {
+            System.out.println("No existe riel entre esas dos estaciones.");
+            return;
+        }
+
+        System.out.println("Riel actual: " + r);
+        int nuevaDist = leerInt(sc, "Nueva distancia (km): ", 1);
+
+        r.setDistanciaKm(nuevaDist);
+        System.out.println("✓ Riel modificado: " + r);
     }
 
     private void listarRieles() {
-        if (rieles.isEmpty()) {
+        Lista etiquetas = red.listarEtiquetas(); // devuelve rieles (con duplicados si es no dirigido)
+        if (etiquetas.esVacia()) {
             System.out.println("No hay rieles cargados.");
             return;
         }
+
         System.out.println("=== LISTA DE RIELES ===");
-        for (Riel r : rieles.values()) {
-            System.out.println(r);
+
+        java.util.HashSet<String> vistos = new java.util.HashSet<>();
+        for (int i = 1; i <= etiquetas.longitud(); i++) {
+            Riel r = (Riel) etiquetas.recuperar(i);
+            String key = (Math.min(r.getCodEstacionOrigen(), r.getCodEstacionDestino()))
+                    + "-"
+                    + (Math.max(r.getCodEstacionOrigen(), r.getCodEstacionDestino()));
+            if (vistos.add(key)) {
+                System.out.println(r);
+            }
         }
     }
 
-    private String claveRiel(int codOri, int codDes) {
-        return (codOri < codDes) ? (codOri + "-" + codDes) : (codDes + "-" + codOri);
+    private void listarRielesDeEstacion(Scanner sc) {
+        int cod = leerInt(sc, "Código de estación: ", 1);
+
+        Estacion est = buscarEstacionPorCodigo(cod);
+        if (est == null) {
+            System.out.println("No existe estación con código " + cod);
+            return;
+        }
+
+        Lista rieles = red.listarEtiquetasDeVertice(est);
+
+        if (rieles.esVacia()) {
+            System.out.println("No hay rieles conectados a esa estación.");
+            return;
+        }
+
+        System.out.println("=== RIELES DE LA ESTACIÓN " + cod + " ===");
+        for (int i = 1; i <= rieles.longitud(); i++) {
+            Riel r = (Riel) rieles.recuperar(i);
+            System.out.println(r);
+        }
     }
 
     // ======================
@@ -735,7 +720,7 @@ public class TrenesSA {
 
             switch (opc) {
                 case 1:
-                    listarRielesDeEstacion(sc);
+
                     break;
                 case 2:
                     //mostrarResumen();
@@ -749,45 +734,6 @@ public class TrenesSA {
         }
     }
 
-    private void listarRielesDeEstacion(Scanner sc) {
-        try {
-            System.out.print("Código de estación: ");
-            int cod = Integer.parseInt(sc.nextLine().trim());
-
-            Object[] response = estaciones.buscar(cod);
-            if (response[0] instanceof Boolean) {
-                if (!(Boolean) response[0]) {
-                    System.out.println("No existe estación con código " + cod);
-                    return;
-                }
-            }
-
-            System.out.println("Rieles que involucran a la estación " + cod + ":");
-            boolean alguno = false;
-
-            for (Riel r : rieles.values()) {
-                if (r.getCodEstacionOrigen() == cod || r.getCodEstacionDestino() == cod) {
-                    System.out.println(r);
-                    alguno = true;
-                }
-            }
-
-            if (!alguno) {
-                System.out.println("No hay rieles para esa estación.");
-            }
-
-        } catch (NumberFormatException e) {
-            System.out.println("Valor numérico inválido.");
-        }
-    }
-
-    /*
-    private void mostrarResumen() {
-        System.out.println("Estaciones: " + estaciones.size());
-        // System.out.println("Trenes: " + trenes.size());
-        System.out.println("Rieles: " + rieles.size());
-    }
-     */
     // ====== Stubs ======
     private void consultasEstaciones(Scanner sc) {
         System.out.println("[TODO] Consultas de Estaciones...");
@@ -801,7 +747,6 @@ public class TrenesSA {
         System.out.println("[TODO] Mostrar sistema...");
     }
 
-    // ===== Helpers =====
     private String leerNoVacio(Scanner in, String prompt) {
         String s;
         do {
