@@ -19,8 +19,9 @@ public class Main {
         TrenesSA app = new TrenesSA();
         Scanner sc = new Scanner(System.in);
         
-        app.cargarInicialDesdeArchivo(fileName);
+        app.cargarInicialDesdeArchivo("src/trenes/file.txt");
         app.comenzar();
     }
 }
+
 
