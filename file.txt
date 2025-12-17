@@ -1,0 +1,13 @@
+# ESTACIONES
+E;1;Tandil;Tandil;Av. España;745;7000;4;2
+E;2;Retiro;CABA;Av. Dr. Jose Maria Ramos Mejia;1430;C1104;9;6
+
+# LINEAS (guardan Estacion en la Lista)
+L;Mitre;2;1
+
+# RIELES (por códigos)
+R;2;1;350
+
+# TRENES
+T;9012;diesel;6;2;Mitre
+T;893;gasolina;0;11;no-asignado
