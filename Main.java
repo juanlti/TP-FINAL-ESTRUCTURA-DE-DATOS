@@ -17,12 +17,10 @@ public class Main {
 
     public static void main(String[] args) {
         TrenesSA app = new TrenesSA();
-
         Scanner sc = new Scanner(System.in);
-     //   app.procesarOpcion(2, sc);
-
-   //  app.procesarOpcion(2, sc);     // OK
-     app.procesarOpcion(3, sc);
-
+        
+        app.cargarInicialDesdeArchivo(fileName);
+        app.comenzar();
     }
 }
+
