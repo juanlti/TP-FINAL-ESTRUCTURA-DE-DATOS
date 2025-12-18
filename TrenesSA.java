@@ -1,5 +1,6 @@
 package trenes;
 
+import static com.sun.org.apache.xalan.internal.lib.ExsltDynamic.map;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -10,13 +11,15 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeMap;
 import java.util.function.Consumer;
+import static jdk.nashorn.internal.objects.NativeArray.map;
+import static jdk.nashorn.internal.objects.NativeDebug.map;
 
 public class TrenesSA {
 
     // ===== Estructuras =====
     private final AVL trenes = new AVL(); // TERMINADO Y REVISADO
     private final AVL estaciones = new AVL(); // TERMINADO Y REVISADO
-    private final HashMap<String, Lista> lineas = new HashMap<>(); // TERMINADO Y REVISADO
+    private final HashMap<String, Linea> lineas = new HashMap<>(); // TERMINADO Y REVISADO
     private final Grafo<Estacion, Riel> red = new Grafo<>(); // TERMINADO Y REVISADO
 
     // ===== Programa =====
@@ -141,6 +144,7 @@ public class TrenesSA {
                     + "3) Modificación\n"
                     + "4) Listar\n"
                     + "5) Buscar por código\n"
+                    + "6) Buscar destino del tren\n"
                     + "0) Volver\n"
                     + "Opción: "
             );
@@ -161,6 +165,9 @@ public class TrenesSA {
                     break;
                 case "5":
                     buscarTren(in);
+                    break;
+                case "6":
+                    buscarDestino(in);
                     break;
                 case "0":
                     volver = true;
@@ -257,7 +264,28 @@ public class TrenesSA {
         Object[] response = trenes.buscar(codigo);
         if (response[0] instanceof Boolean) {
             if ((Boolean) response[0]) {
-                System.out.println(response[1]);
+                Tren tren = (Tren) response[1];
+                System.out.println(tren.getLinea());
+            } else {
+                System.out.println("✗ No existe el tren " + codigo);
+            }
+        }
+
+    }
+
+    private void buscarDestino(Scanner in) {
+        int codigo = leerInt(in, "Código a buscar: ", 1);
+        Object[] response = trenes.buscar(codigo);
+        if (response[0] instanceof Boolean) {
+            if ((Boolean) response[0]) {
+                Tren tren = (Tren) response[1];
+                //Estacion estaciones.
+                System.out.println("TODAS LAS LINEAS DE ESTE TREEN " + tren.getLinea());
+
+                Linea unaLinea = lineas.get(tren.getLinea());
+
+                System.out.println("aca estoy " + unaLinea.toString());
+
             } else {
                 System.out.println("✗ No existe el tren " + codigo);
             }
@@ -278,6 +306,7 @@ public class TrenesSA {
                     + "3) Modificación\n"
                     + "4) Listar\n"
                     + "5) Buscar por código\n"
+                    + "6) Buscar por coincidencia\n"
                     + "0) Volver\n"
                     + "Opción: "
             );
@@ -298,6 +327,9 @@ public class TrenesSA {
                     break;
                 case "5":
                     buscarEstacion(in);
+                    break;
+                case "6":
+                    buscarCoincidencia(in);
                     break;
                 case "0":
                     volver = true;
@@ -397,10 +429,37 @@ public class TrenesSA {
             System.out.println(estacion);
         }
     }
+
+    private void buscarCoincidencia(Scanner sc) {
+        String prefijo = leerNoVacio(sc, "Nombre (prefijo) a buscar: ")
+                .trim()
+                .toLowerCase();
+
+        Lista ls = estaciones.listar(); // Lista de Estacion
+        StringBuilder out = new StringBuilder();
+
+        for (int i = 1; i <= ls.longitud(); i++) {   // 1..N
+            Estacion est = (Estacion) ls.recuperar(i);
+            if (est == null) {
+                continue;
+            }
+
+            String nombre = est.getNombre();
+            if (nombre != null && nombre.trim().toLowerCase().startsWith(prefijo)) {
+                out.append("• ").append(nombre).append('\n');
+            }
+        }
+
+        if (out.length() == 0) {
+            System.out.println("No hay estaciones que empiecen con '" + prefijo + "'.");
+        } else {
+            System.out.println("Coincidencias:\n" + out);
+        }
+    }
+
     // =======================
     // ====== ABM LÍNEAS =====
     // =======================
-
     private void abmLineas(Scanner sc) {
         boolean volver = false;
         while (!volver) {
@@ -457,15 +516,19 @@ public class TrenesSA {
                 return;
             }
             recorrido.insertar(res[1], recorrido.longitud() + 1); // guarda Estacion
-        }
 
-        lineas.put(nombreLinea, recorrido);
+        }
+        Linea linea = new Linea(nombreLinea, recorrido);
+        lineas.put(nombreLinea, linea);
+
+        // true => no dirigido (carga ida y vuelta)
+        //  lineas.put(nombreLinea, recorrido);
         System.out.println("✓ Línea creada: " + nombreLinea);
     }
 
     private void bajaLinea(Scanner sc) {
         String nombreLinea = leerNoVacio(sc, "Nombre de la línea a eliminar: ");
-        Lista elim = lineas.remove(nombreLinea);
+        Linea elim = lineas.remove(nombreLinea);
         if (elim == null) {
             System.out.println("✗ No existe la línea " + nombreLinea);
         } else {
@@ -491,9 +554,7 @@ public class TrenesSA {
             return;
         }
         System.out.println("=== LÍNEAS ===");
-        for (Map.Entry<String, Lista> e : lineas.entrySet()) {
-            System.out.println("- " + e.getKey() + " : " + e.getValue());
-        }
+        lineas.forEach((key, linea) -> System.out.println(key + " = " + linea));
     }
 
     // =======================
@@ -745,7 +806,7 @@ public class TrenesSA {
     }
 
     private void consultasViajes(Scanner sc) {
-        System.out.println("[TODO] Consultas de Viajes");
+        System.out.println("[TODO] Consultas de Viajes (acá va BFS/DFS/Dijkstra con rieles).");
     }
 
     private void mostrarSistema() {
@@ -899,7 +960,8 @@ public class TrenesSA {
             red.insertarVertice(est);
         }
 
-        lineas.put(nombreLinea, recorrido);
+        Linea l = new Linea(nombreLinea, recorrido);
+        lineas.put(nombreLinea, l);
     }
 
     private void cargarRielDesdeArchivo(String[] p) {
@@ -977,7 +1039,7 @@ public class TrenesSA {
         estaciones.insertar(nombre, e); // clave: nombre (Comparable)
     }
 
-    
+
     private boolean existeEstacion(String nombre) {
         Object[] estacion = estaciones.buscar(nombre);
         return estacion[0] instanceof Boolean;
