@@ -1,6 +1,5 @@
-package trenes;
+package eed.tp;
 
-import static com.sun.org.apache.xalan.internal.lib.ExsltDynamic.map;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -10,17 +9,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeMap;
-import java.util.function.Consumer;
-import static jdk.nashorn.internal.objects.NativeArray.map;
-import static jdk.nashorn.internal.objects.NativeDebug.map;
 
 public class TrenesSA {
 
     // ===== Estructuras =====
     private final AVL trenes = new AVL(); // TERMINADO Y REVISADO
     private final AVL estaciones = new AVL(); // TERMINADO Y REVISADO
-    private final HashMap<String, Linea> lineas = new HashMap<>(); // TERMINADO Y REVISADO
-    private final Grafo<Estacion, Riel> red = new Grafo<>(); // TERMINADO Y REVISADO
+    private final java.util.HashMap<String, Linea> lineas = new java.util.HashMap<>();
+    private final Grafo red = new Grafo(); // TERMINADO Y REVISADO
 
     // ===== Programa =====
     public void comenzar() {
@@ -74,6 +70,9 @@ public class TrenesSA {
             case 9:
                 mostrarSistema(); // TODO
                 break;
+            case 10:
+                test(sc); // TODO
+                break;
             case 0:
                 System.out.println("Saliendo...");
                 return true;
@@ -96,14 +95,105 @@ public class TrenesSA {
                 + "7) Consultas de Estaciones\n"
                 + "8) Consultas de Viajes\n"
                 + "9) Mostrar sistema\n"
+                + "10) Mostrar Test\n"
                 + "0) Salir\n"
                 + "------------------------------------------------\n"
                 + "Opción: "
         );
     }
 
+    // =========================
+    // ===== TEST BORRAR ======
+    // =========================
+    private void test(Scanner in) {
+        boolean volver = false;
+        while (!volver) {
+            System.out.print(
+                    "---- ABM Trenes ----\n"
+                    + "1) OBTENER CAMINO MAS CORTO NODOS\n"
+                    + "2) OBTENER TODOS LOS ADYACENTES \n"
+                    + "3) OBTENER EL CAMINO MAS CORTO \n"
+                    + "4)OBTENER EL CAMINO MAS CORTO ENTRE DOS ESTACIONES\n"
+                    + "5) Buscar por código\n"
+                    + "6) Buscar destino del tren\n"
+                    + "0) Volver\n"
+                    + "Opción: "
+            );
+
+            String op = in.nextLine().trim();
+            switch (op) {
+                case "1":
+                    obtenerCaminoMasCorto(in);
+                    break;
+                case "2":
+                    obtenerAdyacentes(in);
+                    break;
+                case "3":
+                    obtenerCaminoMasCortoEnNodos(in);
+                    break;
+                case "4":
+                    caminoConMenosEstaciones();
+                    break;
+                case "5":
+                    buscarTren(in);
+                    break;
+                case "6":
+                    buscarDestino(in);
+                    break;
+                case "0":
+                    volver = true;
+                    break;
+                default:
+                    System.out.println("Opción inválida.");
+            }
+        }
+    }
+
+    private void caminoConMenosEstaciones() {
+
+        Object[] responseOrigen = estaciones.buscar(8);
+        if (responseOrigen[0] instanceof Boolean) {
+            if (!(Boolean) responseOrigen[0]) {
+                System.out.println("✗ Ya existe una estacion con código " + "Tierra del Fuego");
+                return;
+            }
+        }
+
+        Object[] responseDestino = estaciones.buscar(2);
+
+        if (responseDestino[0] instanceof Boolean) {
+            if (!(Boolean) responseDestino[0]) {
+                System.out.println("✗ Ya existe una estacion con código " + "Retiro");
+                return;
+            }
+        }
+        // System.out.println("estacion partida " + responseOrigen[1]);
+        // System.out.println("fin");
+        // red.caminoConMenosEstaciones((Object) responseOrigen[1],(Object) responseDestino[1]);
+        System.out.println("Camino con menos estaciones de  Tierra del Fuego a Retiro");
+        System.out.println(red.caminoConMenosEstaciones((Estacion) responseOrigen[1], (Estacion) responseDestino[1]));
+
+    }
+
+    private void obtenerCaminoMasCorto(Scanner in) {
+        //int codigo = leerInt(in, "Ingrese el nodo del camino (comienza desde  la raiz) ", 1);
+        red.obtenerCaminoMasCortoEnNodos("Retiro");
+
+    }
+
+    private void obtenerAdyacentes(Scanner in) {
+        //int codigo = leerInt(in, "Ingrese el nodo del camino (comienza desde  la raiz) ", 1);
+        System.out.println(red.getAdyacentesDeUnaEstaciones(1));
+
+    }
+
+    private void obtenerCaminoMasCortoEnNodos(Scanner in) {
+        System.out.println(red.obtenerCaminoMasCortoEnNodos("1"));
+
+    }
+
+// FIN TEST BORRARR
     // =========================================================
-    // ===== Adaptador AVL (AJUSTÁ ESTOS MÉTODOS A TU AVL) ======
     // =========================================================
     private boolean trenInsertar(int codigo, Tren tren) {
 
@@ -866,6 +956,25 @@ public class TrenesSA {
 
     public void cargarInicialDesdeArchivo(String fileName) throws IOException {
 
+        java.io.File archivo = new java.io.File(fileName);
+
+        System.out.println("--- VERIFICACIÓN DE ENTORNO ---");
+        System.out.println("1. Directorio de ejecución: " + System.getProperty("user.dir"));
+        System.out.println("2. ¿Existe el archivo '" + fileName + "'?: " + archivo.exists());
+
+        if (!archivo.exists()) {
+            System.out.println("3. Lista de archivos detectados en esta carpeta:");
+            String[] lista = new java.io.File(".").list();
+            for (String s : lista) {
+                System.out.println("   -> " + s);
+            }
+            return; // Detenemos aquí hasta encontrarlo
+        }
+
+        // Si llega acá, es porque lo encontró
+        System.out.println("✓ ¡ARCHIVO DETECTADO! Iniciando lectura...");
+        // ... tu código de lectura ...
+
         List<String[]> lineasPend = new ArrayList<>();
         List<String[]> rielesPend = new ArrayList<>();
         List<String[]> trenesPend = new ArrayList<>();
@@ -1038,7 +1147,6 @@ public class TrenesSA {
         Estacion e = new Estacion(nombre, calle, numero, ciudad, cp, vias, plataformas);
         estaciones.insertar(nombre, e); // clave: nombre (Comparable)
     }
-
 
     private boolean existeEstacion(String nombre) {
         Object[] estacion = estaciones.buscar(nombre);
